@@ -2,9 +2,13 @@
 
 {% block content %}
     {{ super() }}
+    {% for cat, msg in get_flashed_messages(True) %}
+        <div class="flash {{cat}}">{{msg}}</div>
+    {% endfor %}
     <form action="/login" method="post" class="form-contact">
         <p><label>Логин: </label><input type="text" name="username" value="" required />
         <p><label>Пароль: </label><input type="password" name="psw" value="" required />
-        <p><input type="submit" value="Войти">
+        <p><input type="checkbox" name="remainme" /> Запомнить меня
+        <p><input type="submit" value="Войти" />
     </form>
 {% endblock %}
