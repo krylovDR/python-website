@@ -20,3 +20,13 @@ class UserLogin():
 
     def get_id(self):
         return str(self.__user['id'])
+
+    def getName(self):
+        return self.__user['username'] if self.__user else "Без имени"
+
+    def verifyExt(self, filename):
+        ext = filename.rsplit('.', 1)[1]
+        if ext == "cpp" or ext == ".h" or ext == ".c" or ext == ".txt" \
+                or ext == ".CPP" or ext == ".H" or ext == ".C" or ext == ".TXT":
+            return True
+        return False

@@ -60,3 +60,13 @@ class FDataBase:
             print("Ошибка получения данных из БД " + str(e))
 
         return False
+
+    def update_password(self, psw, user_id):
+        try:
+            self.__cur.execute(f"UPDATE users SET psw = ? WHERE id = ?", (psw, user_id))
+            self.__db.commit()
+        except sqlite3.Error as e:
+            print("Ошибка при смене пароля в БД: " + str(e))
+            return False
+        return True
+

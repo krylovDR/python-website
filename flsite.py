@@ -10,6 +10,7 @@ from UserLogin import UserLogin
 DATABASE = '/tmp/flsite.db'  # путь до файла базы данных
 DEBUG = True  # режим отладки
 SECRET_KEY = '6d74e6f63a4307f55de5f18b7b64cb2d0ddee5b3'
+MAX_CONTENT_LENGTH = 1024 * 1024  # максимальный размер файла (1 мбайт)
 
 app = Flask(__name__)
 app.config.from_object(__name__)  # загрузка конфигураций
@@ -84,8 +85,7 @@ def logout():
 @app.route("/profile")
 @login_required
 def profile():
-    return f"""<p><a href="{url_for('logout')}">Выйти из аккаунта</a>
-                <p>user info: {current_user.get_id()}"""
+    return render_template("profile.html", menu=dbase.get_menu(), title="Профиль")
 
 
 @app.route("/login", methods=["POST", "GET"])
@@ -106,9 +106,49 @@ def login():
     return render_template("login.html", menu=dbase.get_menu(), title="Авторизация")
 
 
+@app.route("/chpsw", methods=["POST", "GET"])
+@login_required
+def chpsw():
+    if request.method == "POST":
+        pswrd1 = request.form['newpsw']
+        pswrd2 = request.form['newpsw2']
+        if len(pswrd1) > 3 and pswrd1 == pswrd2:
+            try:
+                hash = generate_password_hash(pswrd1)
+                res = dbase.update_password(hash, current_user.get_id())
+                if not res:
+                    flash("Ошибка смены пароля", "error")
+                    return redirect(url_for('chpsw'))
+                flash("Пароль изменён", "success")
+            except TypeError as e:
+                flash("Ошибка при смене пароля", "error")
+        else:
+            flash("Длина пароля должна быть больше 3, пароль должен совпадать с проверочным", "error")
+            return redirect(url_for('chpsw'))
+        return redirect(url_for('profile'))
+    return render_template("chpsw.html", menu=dbase.get_menu(), title="Смена пароля")
+
+
 @app.errorhandler(404)
 def page_not_found(error):
     return render_template('page404.html', title="Страница не найдена", menu=dbase.get_menu())
+
+
+@app.route('/upload', methods=["POST", "GET"])
+@login_required
+def upload():
+    if request.method == 'POST':
+        file = request.files['file']
+        if file and current_user.verifyExt(file.filename):
+            try:
+                file_program = file.read()
+                print(file_program)
+                # ---------------------
+            except FileNotFoundError as e:
+                flash("Ошибка чтения файла", "error")
+        else:
+            flash("Ошибка загрузки файла", "error")
+    return redirect(url_for('profile'))
 
 
 # условие для запуска на локальном устройстве
