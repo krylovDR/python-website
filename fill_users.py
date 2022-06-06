@@ -24,6 +24,20 @@ try:
     cursor.executescript(sql_script)
     print("SQLite table was created")
 
+    # Добавление админа
+    admin = "admin"
+    cursor.execute(f"SELECT COUNT() as `count` FROM users WHERE username LIKE '{admin}'")
+    res = cursor.fetchone()
+    if res[0] > 0:
+        print(f"Администратор уже есть")
+    else:
+        hash = generate_password_hash('1111')  # стандартный пароль для всех в начале
+        cursor.execute("INSERT INTO users VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                       (admin, hash, 1, "", "", "", "", "", "", ""))
+        sqlite_connection.commit()
+        print(f"Administrator - succefully registered")
+
+    # Добавление студентов
     for i in range(len(logins)):
         cursor.execute(f"SELECT COUNT() as `count` FROM users WHERE username LIKE '{logins[i][0]}'")
         res = cursor.fetchone()
@@ -32,7 +46,8 @@ try:
             continue
 
         hash = generate_password_hash('1111')  # стандартный пароль для всех в начале
-        cursor.execute("INSERT INTO users VALUES(NULL, ?, ?)", (logins[i][0], hash))
+        cursor.execute("INSERT INTO users VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                       (logins[i][0], hash, 0, "", "", "", "", "", "", ""))
         sqlite_connection.commit()
         print(f"Student №{i} - {logins[i][0]} - succefully registered")
 
