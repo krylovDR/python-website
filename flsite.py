@@ -3,7 +3,8 @@ import sqlite3
 import os
 from FDataBase import FDataBase
 from werkzeug.security import generate_password_hash, check_password_hash
-
+from flask_login import LoginManager, login_user, login_required
+from UserLogin import UserLogin
 
 # конфигурация
 DATABASE = '/tmp/flsite.db'  # путь до файла базы данных
@@ -15,6 +16,14 @@ app.config.from_object(__name__)  # загрузка конфигураций
 
 # переопределение пути к базе данных в рабочий каталог
 app.config.update(dict(DATABASE=os.path.join(app.root_path, 'flsite.db')))
+
+login_manager = LoginManager(app)
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    print("load_user")
+    return UserLogin().fromDB(user_id, dbase)
 
 
 # общая функция для установления соединения с базой данных
@@ -62,28 +71,13 @@ def index():
     return render_template('index.html', title="Проверка программ на оформление", menu=dbase.get_menu())
 
 
-# @app.route("/about")
-# def about():
-#     return render_template('about.html', title="О сайте", menu=menu)
+@app.route("/profile/<username>")
+@login_required
+def profile(username):
+    # if 'userLogged' not in session or session['userLogged'] != username:
+    #     abort(401)
 
-
-# @app.route("/contact", methods=["POST", "GET"])
-# def contact():
-#     if request.method == 'POST':
-#         if len(request.form["username"]) >= 2:
-#             flash('Сообщение отправлено', category='success')
-#         else:
-#             flash('Ошибка: Введите username (минимум 2 символа)', category='error')
-#
-#     return render_template('contact.html', title="Обратная связь", menu=menu)
-
-
-# @app.route("/profile/<username>")
-# def profile(username):
-#     if 'userLogged' not in session or session['userLogged'] != username:
-#         abort(401)
-#
-#     return f"Профиль пользователя: {username}"
+    return f"Профиль пользователя: {username}"
 
 
 # @app.route("/login", methods=["POST", "GET"])
@@ -99,13 +93,16 @@ def index():
 
 @app.route("/login", methods=["POST", "GET"])
 def login():
-    if 'userLogged' in session:
-        return redirect(url_for('profile', username=session['userLogged']))
-    elif request.method == 'POST' and request.form['username'] == "daniil" and request.form["psw"] == "123":
-        session['userLogged'] = request.form['username']
-        return redirect(url_for('profile', username=session['userLogged']))
+    if request.method == "POST":
+        user = dbase.getUserByLogin(request.form['username'])
+        if user and check_password_hash(user['psw'], request.form['psw']):
+            userlogin = UserLogin().create(user)
+            login_user(userlogin)
+            return redirect(url_for('profile', username=request.form['username']))
 
-    return render_template('login.html', title="Авторизация", menu=dbase.get_menu())
+        flash("Неверная пара логин/пароль", "error")
+
+    return render_template("login.html", menu=dbase.get_menu(), title="Авторизация")
 
 
 @app.errorhandler(404)
