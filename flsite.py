@@ -1,12 +1,13 @@
 from flask import Flask, render_template, g, request, abort, flash, session, redirect, url_for
 import sqlite3
 import os
+from FDataBase import FDataBase
 
 
 # конфигурация
 DATABASE = '/tmp/flsite.db'  # путь до файла базы данных
 DEBUG = True  # режим отладки
-SECRET_KEY = '8y23h(*#@g8f9232hfjsdf23f(#*'
+SECRET_KEY = '6d74e6f63a4307f55de5f18b7b64cb2d0ddee5b3'
 
 app = Flask(__name__)
 app.config.from_object(__name__)  # загрузка конфигураций
@@ -45,56 +46,54 @@ def close_db(error):
         g.link_db.close()
 
 
-menu = [{"name": "Загрузка кода", "url": "upload-code"},
-        {"name": "Личный кабинет", "url": "personal-area"},
-        {"name": "Обратная связь", "url": "contact"}]
-
-
 # декоратор с url-адресом обработчика (/ - главная страница)
 @app.route("/")
 def index():
     db = get_db()
-    return render_template('index.html', menu=menu)
+    dbase = FDataBase(db)
+    return render_template('index.html', title="Проверка программ на оформление", menu=dbase.get_menu())
 
 
-@app.route("/about")
-def about():
-    return render_template('about.html', title="О сайте", menu=menu)
+# @app.route("/about")
+# def about():
+#     return render_template('about.html', title="О сайте", menu=menu)
 
 
-@app.route("/contact", methods=["POST", "GET"])
-def contact():
-    if request.method == 'POST':
-        if len(request.form["username"]) >= 2:
-            flash('Сообщение отправлено', category='success')
-        else:
-            flash('Ошибка: Введите username (минимум 2 символа)', category='error')
-
-    return render_template('contact.html', title="Обратная связь", menu=menu)
-
-
-@app.route("/profile/<username>")
-def profile(username):
-    if 'userLogged' not in session or session['userLogged'] != username:
-        abort(401)
-
-    return f"Профиль пользователя: {username}"
+# @app.route("/contact", methods=["POST", "GET"])
+# def contact():
+#     if request.method == 'POST':
+#         if len(request.form["username"]) >= 2:
+#             flash('Сообщение отправлено', category='success')
+#         else:
+#             flash('Ошибка: Введите username (минимум 2 символа)', category='error')
+#
+#     return render_template('contact.html', title="Обратная связь", menu=menu)
 
 
-@app.route("/login", methods=["POST", "GET"])
-def login():
-    if 'userLogged' in session:
-        return redirect(url_for('profile', username=session['userLogged']))
-    elif request.method == 'POST' and request.form['username'] == "daniil" and request.form["psw"] == "123":
-        session['userLogged'] = request.form['username']
-        return redirect(url_for('profile', username=session['userLogged']))
+# @app.route("/profile/<username>")
+# def profile(username):
+#     if 'userLogged' not in session or session['userLogged'] != username:
+#         abort(401)
+#
+#     return f"Профиль пользователя: {username}"
 
-    return render_template('login.html', title="Авторизация", menu=menu)
+
+# @app.route("/login", methods=["POST", "GET"])
+# def login():
+#     if 'userLogged' in session:
+#         return redirect(url_for('profile', username=session['userLogged']))
+#     elif request.method == 'POST' and request.form['username'] == "daniil" and request.form["psw"] == "123":
+#         session['userLogged'] = request.form['username']
+#         return redirect(url_for('profile', username=session['userLogged']))
+#
+#     return render_template('login.html', title="Авторизация", menu=menu)
 
 
 @app.errorhandler(404)
 def page_not_found(error):
-    return render_template('page404.html', title="Страница не найдена", menu=menu)
+    db = get_db()
+    dbase = FDataBase(db)
+    return render_template('page404.html', title="Страница не найдена", menu=dbase.get_menu())
 
 
 # условие для запуска на локальном устройстве
