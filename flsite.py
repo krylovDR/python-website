@@ -3,7 +3,7 @@ import sqlite3
 import os
 from FDataBase import FDataBase
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import LoginManager, login_user, login_required
+from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from UserLogin import UserLogin
 
 # конфигурация
@@ -18,11 +18,13 @@ app.config.from_object(__name__)  # загрузка конфигураций
 app.config.update(dict(DATABASE=os.path.join(app.root_path, 'flsite.db')))
 
 login_manager = LoginManager(app)
+login_manager.login_view = 'login'  # если не авторизован, будет направлен на login
+login_manager.login_message = "Авторизуйтесь, чтобы пользоваться функциями сайта"
+login_manager.login_message_category = "success"
 
 
 @login_manager.user_loader
 def load_user(user_id):
-    print("load_user")
     return UserLogin().fromDB(user_id, dbase)
 
 
@@ -71,33 +73,32 @@ def index():
     return render_template('index.html', title="Проверка программ на оформление", menu=dbase.get_menu())
 
 
-@app.route("/profile/<username>")
+@app.route('/logout')
 @login_required
-def profile(username):
-    # if 'userLogged' not in session or session['userLogged'] != username:
-    #     abort(401)
+def logout():
+    logout_user()
+    flash("Вы вышли из аккаунта", "success")
+    return redirect(url_for('login'))
 
-    return f"Профиль пользователя: {username}"
 
-
-# @app.route("/login", methods=["POST", "GET"])
-# def login():
-#     if 'userLogged' in session:
-#         return redirect(url_for('profile', username=session['userLogged']))
-#     elif request.method == 'POST' and request.form['username'] == "daniil" and request.form["psw"] == "123":
-#         session['userLogged'] = request.form['username']
-#         return redirect(url_for('profile', username=session['userLogged']))
-#
-#     return render_template('login.html', title="Авторизация", menu=menu)
+@app.route("/profile")
+@login_required
+def profile():
+    return f"""<p><a href="{url_for('logout')}">Выйти из аккаунта</a>
+                <p>user info: {current_user.get_id()}"""
 
 
 @app.route("/login", methods=["POST", "GET"])
 def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('profile'))
+
     if request.method == "POST":
         user = dbase.getUserByLogin(request.form['username'])
         if user and check_password_hash(user['psw'], request.form['psw']):
             userlogin = UserLogin().create(user)
-            login_user(userlogin)
+            rm = True if request.form.get('remainme') else False
+            login_user(userlogin, remember=rm)
             return redirect(url_for('profile', username=request.form['username']))
 
         flash("Неверная пара логин/пароль", "error")
