@@ -19,6 +19,13 @@
         <td valign="top" class="profile-panel">
             <p><a href="{{ url_for('logout') }}">Выйти из аккаунта</a>
             <p><a href="{{ url_for('chpsw') }}">Сменить пароль</a>
+            {% if current_user.getName() == "admin" %}
+                <form action="{{ url_for('search') }}" method="POST" class="form-contact">
+                    <p><label>Логин студента: </label><input type="text" name="studlogin" value="" required />
+                    <p><label>Номер лабы: </label><input type="text" name="numberadmin" value="" required />
+                    <p><input type="submit" value="Посмотреть исходный код" />
+                </form>
+            {% endif %}
             <ul class="profile-info">
                 <li>Логин: {{ current_user.getName() }}</li>
             </ul>

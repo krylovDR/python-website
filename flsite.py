@@ -168,6 +168,26 @@ def report():
     return render_template("report.html", post=report_str, menu=dbase.get_menu(), title="Отчёт проверки на оформление")
 
 
+@app.route('/search', methods=["POST", "GET"])
+@login_required
+def search():
+    if request.method == 'POST':
+        try:
+            student_login = request.form['studlogin']
+            lab_number = "lab" + request.form['numberadmin']
+            res = dbase.getUserByLogin(student_login)
+            if not res:
+                flash("Ошибка получения исходного кода", "error")
+                return redirect(url_for('profile'))
+            flash("Программа получена", "success")
+            global report_str
+            report_str= res[lab_number].split('\n')
+            redirect(url_for('report'))
+        except TypeError as e:
+            flash("Ошибка при извлечении программы из БД", "error")
+    return redirect(url_for('report'))
+
+
 report_str = []
 
 

@@ -78,4 +78,3 @@ class FDataBase:
             print("Ошибка при смене пароля в БД: " + str(e))
             return False
         return True
-
