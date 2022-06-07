@@ -1,10 +1,15 @@
 from flask import Flask, render_template, g, request, abort, flash, session, redirect, url_for
 import sqlite3
 import os
+import gspread
+import csv
+
+import linter
 from FDataBase import FDataBase
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from UserLogin import UserLogin
+from linter import perform_multiline_lint
 
 # конфигурация
 DATABASE = '/tmp/flsite.db'  # путь до файла базы данных
@@ -22,6 +27,29 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'  # если не авторизован, будет направлен на login
 login_manager.login_message = "Авторизуйтесь, чтобы пользоваться функциями сайта"
 login_manager.login_message_category = "success"
+
+sa = gspread.service_account(filename="credentials.json")  # используем ключ сервисного аккаунта
+sh = sa.open("Vedomost")  # открываем таблицу с ведомостью
+wks = sh.worksheet("баллы")  # открываем необходимый лист в таблице ведомости
+
+logins = wks.get('AG5:AG201')  # считывание диапазона ячеек с логинами
+marks = []  # таблица с оценками
+
+# считывание таблицы с оценками (первый индекс - номер лабы, второй индекс - номер студента)
+marks.append(wks.get('D5:D201'))  # 0 лаба
+marks.append(wks.get('E5:E201'))  # 1 лаба
+marks.append(wks.get('F5:F201'))  # 2 лаба
+marks.append(wks.get('G5:G201'))  # 3 лаба
+marks.append(wks.get('H5:H201'))  # 4 лаба
+marks.append(wks.get('I5:I201'))  # 5 лаба
+marks.append(wks.get('J5:J201'))  # 6 лаба
+
+# из-за пустых ячеек в таблице размер массива может быть меньше чем общее количество студентов (197)
+for i in range(0, 7):
+    while len(marks[i]) < 197:
+        marks[i].append([])
+while len(logins) < 197:
+    logins.append([])
 
 
 @login_manager.user_loader
@@ -134,6 +162,15 @@ def page_not_found(error):
     return render_template('page404.html', title="Страница не найдена", menu=dbase.get_menu())
 
 
+@app.route("/report")
+@login_required
+def report():
+    return render_template("report.html", post=report_str, menu=dbase.get_menu(), title="Отчёт проверки на оформление")
+
+
+report_str = []
+
+
 @app.route('/upload', methods=["POST", "GET"])
 @login_required
 def upload():
@@ -141,9 +178,44 @@ def upload():
         file = request.files['file']
         if file and current_user.verifyExt(file.filename):
             try:
-                file_program = file.read()
-                print(file_program)
-                # ---------------------
+                file_program = file.read().decode().replace("\r\n", "\n")
+                cur_lab = "lab" + request.form['number']
+                errors = linter.perform_multiline_lint(file_program)
+                global report_str
+                res_str = ""
+                if len(errors) != 0:
+                    str_massive = file_program.split('\n')
+
+                    for i in range(len(errors)):
+                        str_massive[int(errors[i][0])] += '  // ' + errors[i][1]
+
+                    report_str = str_massive  # для отчёта в html
+
+                    for i in range(len(str_massive)):
+                        res_str += str_massive[i] + '\n'
+
+                    flash("Были обнаружены ошибки оформления", "error")
+                    return redirect(url_for('report'))
+                else:
+                    num_lab = int(request.form['number'])
+                    num_stud = logins.index([current_user.getName()])
+
+                    if marks[num_lab][num_stud] == []:
+                        marks[num_lab][num_stud] = [str(0.3)]
+                    elif 0.31 < float(marks[num_lab][num_stud][0].replace(',', '.')) < 0.69:
+                        marks[num_lab][num_stud] = [str(float(marks[num_lab][num_stud][0].replace(',', '.')) + 0.3)]
+
+                    # обновление данных в таблице
+                    wks.update('D5:D201', marks[0])  # 0 лаба
+                    wks.update('E5:E201', marks[1])  # 1 лаба
+                    wks.update('F5:F201', marks[2])  # 2 лаба
+                    wks.update('G5:G201', marks[3])  # 3 лаба
+                    wks.update('H5:H201', marks[4])  # 4 лаба
+                    wks.update('I5:I201', marks[5])  # 5 лаба
+                    wks.update('J5:J201', marks[6])  # 6 лаба
+
+                    flash("Проверка на оформление пройдена!", "success")
+
             except FileNotFoundError as e:
                 flash("Ошибка чтения файла", "error")
         else:

@@ -17,3 +17,8 @@ lab4 text NOT NULL,
 lab5 text NOT NULL,
 lab6 text NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS temp (
+id integer PRIMARY KEY AUTOINCREMENT,
+rep text NOT NULL
+);

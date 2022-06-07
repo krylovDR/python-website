@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    {{ super() }}
+    {% for cat, msg in get_flashed_messages(True) %}
+        <div class="flash {{cat}}">{{msg}}</div>
+    {% endfor %}
+    <p>Вернуться на <a href="{{url_for('index')}}">главную</a> страницу.
+    {% for s in post %}
+        <p>{{ s | safe }}
+    {% endfor %}
+{% endblock %}
