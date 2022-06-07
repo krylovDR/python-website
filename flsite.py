@@ -214,6 +214,9 @@ def upload():
                     wks.update('I5:I201', marks[5])  # 5 лаба
                     wks.update('J5:J201', marks[6])  # 6 лаба
 
+                    res = dbase.update_lab(file_program, cur_lab, current_user.get_id())
+                    if not res:
+                        flash("Ошибка сохранения кода лабораторной", "error")
                     flash("Проверка на оформление пройдена!", "success")
 
             except FileNotFoundError as e:

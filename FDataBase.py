@@ -70,3 +70,12 @@ class FDataBase:
             return False
         return True
 
+    def update_lab(self, txt, lab, user_id):
+        try:
+            self.__cur.execute(f"UPDATE users SET {lab} = ? WHERE id = ?", (txt, user_id))
+            self.__db.commit()
+        except sqlite3.Error as e:
+            print("Ошибка при смене пароля в БД: " + str(e))
+            return False
+        return True
+
