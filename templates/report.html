@@ -7,6 +7,6 @@
     {% endfor %}
     <p>Вернуться на <a href="{{url_for('index')}}">главную</a> страницу.
     {% for s in post %}
-        <p>{{ s | safe }}
+        <pre><p>{{ s | safe }}</p></pre>
     {% endfor %}
 {% endblock %}

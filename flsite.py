@@ -207,7 +207,7 @@ def upload():
                     str_massive = file_program.split('\n')
 
                     for i in range(len(errors)):
-                        str_massive[int(errors[i][0])] += '  // ' + errors[i][1]
+                        str_massive[int(errors[i][0])] += '  <font color="red">// ' + errors[i][1] + '</font>'
 
                     report_str = str_massive  # для отчёта в html
 
